@@ -6,7 +6,7 @@ import { searchNodes } from "./acorn-utils";
 import { InjectStylesFunctionName } from "./constants";
 import { ExtractedComponentInterface } from "./extracted-component.interface";
 import { ExtractorInterface } from "./extractor.interface";
-import { generatePlaceholderId, injectPlaceholder } from "./placeholder-utils";
+import { generatePlaceholderId, injectInFunctionDeclaration, injectWhereComment } from "./placeholder-utils";
 import { isVueComponent, isParsable, isCss } from "./utils";
 
 const injectStylesFunctionDeclaration: string = `function ${InjectStylesFunctionName}(e, t) {
@@ -27,7 +27,7 @@ const extractors: Record<string, ExtractorInterface> = {
             const rootNode = Parser.parse(code, {ecmaVersion: 'latest', sourceType: 'module'});
             const nodes = searchNodes(rootNode, 'FunctionDeclaration', {'id.name': '_sfc_render'});
             if (nodes.length > 0) {
-                return injectPlaceholder(nodes[0], module, code);
+                return injectInFunctionDeclaration(nodes[0], module, code);
             }
             return code;
         }
@@ -40,7 +40,20 @@ const extractors: Record<string, ExtractorInterface> = {
             const rootNode = Parser.parse(code, {ecmaVersion: 'latest', sourceType: 'module'});
             const nodes = searchNodes(rootNode, 'FunctionDeclaration', {'id.name': 'render'});
             if (nodes.length > 0) {
-                return injectPlaceholder(nodes[0], module, code);
+                return injectInFunctionDeclaration(nodes[0], module, code);
+            }
+            return code;
+        }
+    },
+    sfcCustomRender: {
+        supports(node: BaseNode): boolean {
+            return searchNodes(node, 'CallExpression', {'callee.name': '_export_sfc'}).length > 0;
+        },
+        process(module: ExtractedComponentInterface, id: string, code: string): string {
+            const comment = '/*! @__STYLES_INJECT__ */';
+            const pos = code.indexOf(comment);
+            if (pos > -1) {
+                code = injectWhereComment(module, pos, pos + comment.length, code);
             }
             return code;
         }

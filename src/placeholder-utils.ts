@@ -25,7 +25,7 @@ export function generatePlaceholderId(length: number = 8) {
     return generatedId;
 }
 
-export function injectPlaceholder(node: FunctionDeclaration, module: ExtractedComponentInterface, code: string): string {
+export function injectInFunctionDeclaration(node: FunctionDeclaration, module: ExtractedComponentInterface, code: string): string {
     const flagVarName = `_$${module.id}`;
     let start = expandNodeType(node).start;
     let output = code.substring(0, start);
@@ -43,5 +43,19 @@ if (!${flagVarName}) {
     ${flagVarName} = true;
 }\n` +
         code.substring(expandNodeType(node.body).start + 1)
-    ;
+        ;
+}
+
+export function injectWhereComment(module: ExtractedComponentInterface, indexStart: number, indexEnd: number, code: string): string {
+    const flagVarName = `_$${module.id}`;
+    let output = code.substring(0, indexStart);
+    return output +
+        `;let ${flagVarName} = false;\n` +
+        `
+if (!${flagVarName}) {
+    ${InjectStylesFunctionName}("${module.placeholder}","${module.id}");
+    ${flagVarName} = true;
+}\n` +
+        code.substring(indexEnd)
+        ;
 }
