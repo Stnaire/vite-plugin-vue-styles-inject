@@ -1,4 +1,4 @@
-import { BaseNode, Program, ImportDeclaration, ExportNamedDeclaration } from "estree";
+import { BaseNode, Program, ImportDeclaration, ExportNamedDeclaration, CallExpression, ExpressionStatement, ArrayExpression, AssignmentExpression } from "estree";
 import { areEqual } from "./utils";
 
 export function isNode<T extends BaseNode>(node: BaseNode, type: string): node is T {
@@ -41,8 +41,22 @@ export function iterateNodes(node: BaseNode, callback: (node: BaseNode) => void|
         for (const sub of node.specifiers) {
             iterateNodes(sub, callback);
         }
-    } else if (isNode<ExportNamedDeclaration>(node, 'ExportNamedDeclaration') && node.declaration) {
+    } else if ((isNode<ExportNamedDeclaration>(node, 'ExportNamedDeclaration') || isNode<ExportNamedDeclaration>(node, 'ExportDefaultDeclaration')) && node.declaration) {
         iterateNodes(node.declaration, callback);
+    } else if (isNode<ExpressionStatement>(node, 'ExpressionStatement') && node.expression) {
+        iterateNodes(node.expression, callback);
+    } else if (isNode<CallExpression>(node, 'CallExpression') && node.arguments) {
+        for (const sub of node.arguments) {
+            iterateNodes(sub, callback);
+        }
+    } else if (isNode<ArrayExpression>(node, 'ArrayExpression') && node.elements) {
+        for (const sub of node.elements) {
+            if (sub) {
+                iterateNodes(sub, callback);
+            }
+        }
+    } else if (isNode<AssignmentExpression>(node, 'AssignmentExpression') && node.right) {
+        iterateNodes(node.right, callback);
     }
     return null;
 }
